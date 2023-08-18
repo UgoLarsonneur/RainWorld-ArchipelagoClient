@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>Archipelago</RootNamespace>
+    <TargetFramework>net48</TargetFramework>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+
+    <!-- <GameLocation>C:\Program Files (x86)\Steam\steamapps\common\Rain World</GameLocation> -->
+
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="libs/*.dll">
+      <Private>false</Private>
+    </Reference>
+
+    <!-- <Reference Include="$(GameLocation)\BepInEx\utils\PUBLIC-Assembly-CSharp.dll"> </Reference>
+    <Reference Include="$(GameLocation)\RainWorld_Data\Managed\UnityEngine.dll"> </Reference>
+    <Reference Include="$(GameLocation)\RainWorld_Data\Managed\UnityEngine.CoreModule.dll"> </Reference>
+    <Reference Include="$(GameLocation)\RainWorld_Data\Managed\UnityEngine.InputLegacyModule.dll"> </Reference>
+    <Reference Include="$(GameLocation)\BepInEx\core\BepInEx.dll"> </Reference>
+    <Reference Include="$(GameLocation)\BepInEx\plugins\HOOKS-Assembly-CSharp.dll"> </Reference>
+    <Reference Include="$(GameLocation)\BepInEx\core\MonoMod.RuntimeDetour.dll"> </Reference>
+    <Reference Include="$(GameLocation)\BepInEx\core\MonoMod.Utils.dll"> </Reference> -->
+    
+  </ItemGroup>
+
+</Project>
