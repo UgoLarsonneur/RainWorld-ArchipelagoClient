@@ -64,13 +64,6 @@ public class ArchipelagoMain : BaseUnityPlugin
         }
 	}
 
-    private static void Player_Movement_Update_Hook(On.Player.orig_MovementUpdate orig, Player self, bool eu)
-    {
-        orig(self, eu);
-        ArchipeLogger.LogDebug("UpdateMov: "+self.slugcatStats.runspeedFac);
-
-    }
-
     private static void AddRandomUnlock(RainWorldGame game)
     {
         List<string> candidates = new List<string>();
