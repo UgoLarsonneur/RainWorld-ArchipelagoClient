@@ -40,6 +40,7 @@ public class ArchipelagoMain : BaseUnityPlugin
             On.Expedition.ChallengeOrganizer.AssignChallenge += ChallengeOrganizer_AssignChallenge_Hook;
 			On.Menu.ChallengeSelectPage.UpdateChallengeButtons += ChallengeSelectPage_UpdateChallengeButtons_Hook;
 			On.Expedition.ExpeditionProgression.UnlockSprite += ExpeditionProgression_UnlockSprite;
+            On.Player.MovementUpdate += Player_Movement_Update_Hook;
 
         } catch (Exception e)
         {
@@ -62,6 +63,13 @@ public class ArchipelagoMain : BaseUnityPlugin
             }
         }
 	}
+
+    private static void Player_Movement_Update_Hook(On.Player.orig_MovementUpdate orig, Player self, bool eu)
+    {
+        orig(self, eu);
+        ArchipeLogger.LogDebug("UpdateMov: "+self.slugcatStats.runspeedFac);
+
+    }
 
     private static void AddRandomUnlock(RainWorldGame game)
     {
@@ -94,7 +102,9 @@ public class ArchipelagoMain : BaseUnityPlugin
         }
     }
 
-
+    /// <summary>
+    /// Adds a an unlock (perk or burden). To use *during* an Expedition.
+    /// </summary>
     private static void AddUnlock(string unlock, RainWorldGame game)
 	{
 		Expedition.ExpeditionGame.activeUnlocks.Add(unlock);
@@ -108,13 +118,39 @@ public class ArchipelagoMain : BaseUnityPlugin
 		}
         if(unlock.Contains("unl-glow"))
         {
-            game.Players.ForEach(item => ((Player)item.realizedCreature).glowing = true);
+            game.Players.ForEach(player => ((Player)player.realizedCreature).glowing = true);
         }
+        if(unlock.Contains("unl-glow"))
+        {
+            game.Players.ForEach(player => ((Player)player.realizedCreature).glowing = true);
+        }
+        if(unlock.Contains("unl-agility"))
+        {
+            game.Players.ForEach(item =>
+            {
+                StoryGameSession storyGameSession = (StoryGameSession)game.session;
+                Player player = (Player)item.realizedCreature;
+                SlugcatStats newSlugcatStats = new SlugcatStats(player.SlugCatClass, player.Malnourished);
+
+                //Not sure this always works ..?
+                if (ModManager.CoopAvailable && ((StoryGameSession)game.session).characterStatsJollyplayer != null)
+                    storyGameSession.characterStatsJollyplayer[player.playerState.playerNumber] = newSlugcatStats;
+                else
+                    storyGameSession.characterStats = newSlugcatStats;
+
+                game.session.characterStats = newSlugcatStats;
+            });
+        }
+
+        // For now perks that give items don't work, not sure if they should even be included in AP
+        // if(unlock.Contains("unl-lantern"))
+        // {
+
+        // }
+        // ...
 
 		ArchipeLogger.LogMessage("Added "+ (unlock.StartsWith("bur-") ? "burden" : "perk") + ": "+unlock);
 	}
-    
-
 
 	private static string ExpeditionProgression_UnlockSprite(On.Expedition.ExpeditionProgression.orig_UnlockSprite orig, string key, bool alwaysShow)
 	{
