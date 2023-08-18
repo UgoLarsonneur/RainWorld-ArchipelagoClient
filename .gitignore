@@ -455,4 +455,4 @@ $RECYCLE.BIN/
 #!.vscode/extensions.json
 
 
-.bat
+*.bat
