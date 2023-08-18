@@ -26,6 +26,8 @@ public class ArchipelagoMain : BaseUnityPlugin
 		ModManager.Expedition &&
 		game.rainWorld.ExpeditionMode;
 
+    
+
 
     private void OnEnable()
     {
@@ -40,7 +42,6 @@ public class ArchipelagoMain : BaseUnityPlugin
             On.Expedition.ChallengeOrganizer.AssignChallenge += ChallengeOrganizer_AssignChallenge_Hook;
 			On.Menu.ChallengeSelectPage.UpdateChallengeButtons += ChallengeSelectPage_UpdateChallengeButtons_Hook;
 			On.Expedition.ExpeditionProgression.UnlockSprite += ExpeditionProgression_UnlockSprite;
-            On.Player.MovementUpdate += Player_Movement_Update_Hook;
 
         } catch (Exception e)
         {
@@ -83,6 +84,8 @@ public class ArchipelagoMain : BaseUnityPlugin
                     candidates.Add(bur);
             });
         }
+
+        candidates.Remove("unl-passage");
 
         if (candidates.Count > 0)
         {
@@ -143,6 +146,7 @@ public class ArchipelagoMain : BaseUnityPlugin
         // ...
 
 		ArchipeLogger.LogMessage("Added "+ (unlock.StartsWith("bur-") ? "burden" : "perk") + ": "+unlock);
+        
 	}
 
 	private static string ExpeditionProgression_UnlockSprite(On.Expedition.ExpeditionProgression.orig_UnlockSprite orig, string key, bool alwaysShow)
