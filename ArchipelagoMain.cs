@@ -7,7 +7,6 @@ using RWCustom;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 
 [BepInPlugin(PLUGIN_GUID, PLUGIN_NAME, PLUGIN_VERSION)]
 public class ArchipelagoMain : BaseUnityPlugin
@@ -20,13 +19,26 @@ public class ArchipelagoMain : BaseUnityPlugin
 
     static int challengeCount = 20;
 
-	private static bool IsInExpedition =>
-		RWCustom.Custom.rainWorld.processManager.currentMainLoop is RainWorldGame game &&
-		game.session is StoryGameSession storySession &&
-		ModManager.Expedition &&
-		game.rainWorld.ExpeditionMode;
 
-    
+    private static RainWorldGame? Game {
+        get {
+            if(Custom.rainWorld.processManager.currentMainLoop is RainWorldGame game)
+                return game;
+            return null;
+        }
+    }
+
+    private static bool IsInExpedition => Game != null && Game.session is StoryGameSession &&
+        ModManager.Expedition && Game.rainWorld.ExpeditionMode;
+
+	private static StoryGameSession? ExpeditionSession {
+        get {
+            if(IsInExpedition)
+                return (StoryGameSession)Game.session;
+            return null;
+        }
+    }
+
 
 
     private void OnEnable()
@@ -53,11 +65,9 @@ public class ArchipelagoMain : BaseUnityPlugin
 	private void Update() {
 		if(UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.Alpha1))
         {
-            if(RWCustom.Custom.rainWorld.processManager.currentMainLoop is RainWorldGame game &&
-               game.session is StoryGameSession storySession && ModManager.Expedition && game.rainWorld.ExpeditionMode)
+            if(IsInExpedition)
             {
-                AddRandomUnlock(game);
-
+                AddRandomUnlock();
 				//Add Max Karma
                 // if(storySession.saveState.deathPersistentSaveData.karmaCap < 10)
                 // 	storySession.saveState.deathPersistentSaveData.karmaCap++;
@@ -65,8 +75,16 @@ public class ArchipelagoMain : BaseUnityPlugin
         }
 	}
 
-    private static void AddRandomUnlock(RainWorldGame game)
+    private static void AddTextPromptMessage(string message, int wait, int time, bool darken, bool hideHud)
     {
+        Game.cameras[0].hud.textPrompt.AddMessage(message, wait, time, darken, hideHud);
+    }
+
+    private static void AddRandomUnlock()
+    {
+        if(!IsInExpedition)
+            return;
+
         List<string> candidates = new List<string>();
         foreach (List<string> perkgroup in Expedition.ExpeditionProgression.perkGroups.Values)
         {
@@ -90,7 +108,7 @@ public class ArchipelagoMain : BaseUnityPlugin
         if (candidates.Count > 0)
         {
             int randomChoice = UnityEngine.Random.Range(0, candidates.Count);
-            AddUnlock(candidates[randomChoice], game);
+            AddUnlock(candidates[randomChoice]);
         }
         else
         {
@@ -101,40 +119,45 @@ public class ArchipelagoMain : BaseUnityPlugin
     /// <summary>
     /// Adds a an unlock (perk or burden). To use *during* an Expedition.
     /// </summary>
-    private static void AddUnlock(string unlock, RainWorldGame game)
+    private static void AddUnlock(string unlock)
 	{
+        if(!IsInExpedition)
+            return;
+
+        bool isPerk = unlock.StartsWith("unl-");
+
 		Expedition.ExpeditionGame.activeUnlocks.Add(unlock);
 		if(unlock.Contains("unl-slow"))
 		{
-			Expedition.ExpeditionGame.unlockTrackers.Add(new Expedition.ExpeditionGame.SlowTimeTracker(game));
+			Expedition.ExpeditionGame.unlockTrackers.Add(new Expedition.ExpeditionGame.SlowTimeTracker(Game));
 		}
 		if(unlock.Contains("bur-pursued"))
 		{
-			Expedition.ExpeditionGame.burdenTrackers.Add(new Expedition.ExpeditionGame.PursuedTracker(game));
+			Expedition.ExpeditionGame.burdenTrackers.Add(new Expedition.ExpeditionGame.PursuedTracker(Game));
 		}
         if(unlock.Contains("unl-glow"))
         {
-            game.Players.ForEach(player => ((Player)player.realizedCreature).glowing = true);
+            Game.Players.ForEach(player => ((Player)player.realizedCreature).glowing = true);
         }
         if(unlock.Contains("unl-glow"))
         {
-            game.Players.ForEach(player => ((Player)player.realizedCreature).glowing = true);
+            Game.Players.ForEach(player => ((Player)player.realizedCreature).glowing = true);
         }
         if(unlock.Contains("unl-agility"))
         {
-            game.Players.ForEach(item =>
+            Game.Players.ForEach(item =>
             {
-                StoryGameSession storyGameSession = (StoryGameSession)game.session;
+                StoryGameSession storyGameSession = (StoryGameSession)Game.session;
                 Player player = (Player)item.realizedCreature;
                 SlugcatStats newSlugcatStats = new SlugcatStats(player.SlugCatClass, player.Malnourished);
 
                 //Not sure this always works ..?
-                if (ModManager.CoopAvailable && ((StoryGameSession)game.session).characterStatsJollyplayer != null)
+                if (ModManager.CoopAvailable && ((StoryGameSession)Game.session).characterStatsJollyplayer != null)
                     storyGameSession.characterStatsJollyplayer[player.playerState.playerNumber] = newSlugcatStats;
                 else
                     storyGameSession.characterStats = newSlugcatStats;
 
-                game.session.characterStats = newSlugcatStats;
+                Game.session.characterStats = newSlugcatStats;
             });
         }
 
@@ -144,8 +167,12 @@ public class ArchipelagoMain : BaseUnityPlugin
 
         // }
         // ...
-
-		ArchipeLogger.LogMessage("Added "+ (unlock.StartsWith("bur-") ? "burden" : "perk") + ": "+unlock);
+        
+        string unlockName = isPerk ?
+            Expedition.ExpeditionProgression.UnlockName(unlock):
+            Expedition.ExpeditionProgression.BurdenName(unlock);
+        AddTextPromptMessage("Received " + unlockName + " from very_nice_person", 5, 100, false, false);
+		ArchipeLogger.LogMessage("Added " + (isPerk ? "perk" : "burden") + ": " + unlockName);
         
 	}
 
@@ -175,6 +202,7 @@ public class ArchipelagoMain : BaseUnityPlugin
         if(!self.completed)
         {
             int index = Expedition.ExpeditionData.challengeList.FindIndex(item => item == self);
+            AddTextPromptMessage("Sent truc machin to friend", 5, 130, false, false);
             ArchipeLogger.LogMessage("Challenge #"+index+" completed !");
         }
         orig(self);
@@ -195,7 +223,7 @@ public class ArchipelagoMain : BaseUnityPlugin
     }
     
     /// <summary>
-    /// Reset the challenges to ChallengeCount instead of 3
+    /// Resets the challenges to ChallengeCount instead of 3
     /// </summary>
     private static void ChallengeSelectPage_Ctor_Hook(On.Menu.ChallengeSelectPage.orig_ctor orig, Menu.ChallengeSelectPage self, Menu.Menu menu, Menu.MenuObject owner, Vector2 pos)
     {
@@ -204,6 +232,9 @@ public class ArchipelagoMain : BaseUnityPlugin
         self.UpdateChallengeButtons();
     }
 
+    /// <summary>
+    /// Resets the challenges to ChallengeCount
+    /// </summary>
     private static void ResetChallenges()
     {
         Expedition.ExpeditionData.challengeList.Clear();
